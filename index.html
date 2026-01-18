@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DreamShadows</title>
+
+<style>
+  :root{
+    --bg1:#07060a;
+    --bg2:#0b0a14;
+    --glass: rgba(255,255,255,0.08);
+    --stroke: rgba(255,255,255,0.14);
+    --text: rgba(255,255,255,0.94);
+    --muted: rgba(255,255,255,0.65);
+    --violet:#7c5cff;
+    --cyan:#00d4ff;
+    --pink:#ff4fd8;
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    color:var(--text);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    background:
+      radial-gradient(900px 500px at 20% 10%, rgba(124,92,255,.35), transparent 60%),
+      radial-gradient(900px 500px at 80% 20%, rgba(0,212,255,.30), transparent 60%),
+      radial-gradient(900px 700px at 50% 90%, rgba(255,79,216,.22), transparent 65%),
+      linear-gradient(180deg, var(--bg1), var(--bg2));
+  }
+
+  .scale-wrap{
+    transform: scale(0.8);
+    transform-origin: top center;
+  }
+
+  .frame{
+    margin:36px 20px;
+    padding:3px;
+    border-radius:32px;
+    background: linear-gradient(135deg, var(--violet), var(--cyan), var(--pink));
+    box-shadow:
+      0 30px 80px rgba(0,0,0,.55),
+      inset 0 0 0 1px rgba(255,255,255,.15);
+  }
+
+  .app{
+    width:100%;
+    max-width:820px;
+    padding:44px 36px 56px;
+    border-radius:30px;
+    background:
+      radial-gradient(700px 360px at 20% 0%, rgba(124,92,255,.12), transparent 60%),
+      radial-gradient(700px 360px at 80% 0%, rgba(0,212,255,.10), transparent 60%),
+      linear-gradient(180deg, #0b0b12, #07070c);
+  }
+
+  h1{
+    text-align:center;
+    font-weight:650;
+    letter-spacing:.10em;
+    margin:4px 0 6px;
+    background: linear-gradient(90deg, var(--violet), var(--cyan), var(--pink));
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+
+  .author{
+    text-align:center;
+    font-size:13px;
+    margin-bottom:30px;
+  }
+
+  .author a{
+    color:var(--muted);
+    text-decoration:none;
+  }
+
+  .panel{
+    background:var(--glass);
+    border:1px solid var(--stroke);
+    border-radius:26px;
+    padding:26px;
+    backdrop-filter: blur(16px);
+    box-shadow: 0 22px 50px rgba(0,0,0,.45);
+  }
+
+  .layout{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:22px;
+    align-items:stretch;
+  }
+
+  .full{ grid-column: 1 / -1; }
+
+  @media (max-width: 760px){
+    .layout{ grid-template-columns: 1fr; }
+    .full{ grid-column:auto; }
+  }
+
+  .card{
+    background:rgba(255,255,255,0.06);
+    border:1px solid var(--stroke);
+    border-radius:20px;
+    padding:20px;
+    min-height:108px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+  }
+
+  label{
+    font-size:13px;
+    letter-spacing:.04em;
+    color:var(--muted);
+  }
+
+  select, input[type="range"]{
+    width:100%;
+    margin-top:12px;
+  }
+
+  select{
+    padding:14px 16px;
+    border-radius:16px;
+    border:none;
+    background:#0f0f18;
+    color:#fff;
+    font-size:15px;
+  }
+
+  .center-select select{
+    text-align:center;
+    text-align-last:center;
+  }
+
+  input[type="range"]{
+    accent-color: var(--violet);
+  }
+
+  .value{
+    float:right;
+    font-size:13px;
+    color:var(--muted);
+  }
+</style>
+</head>
+
+<body>
+<div class="scale-wrap">
+  <div class="frame">
+    <div class="app">
+
+      <h1>DreamShadows</h1>
+      <div class="author">
+        <a href="https://www.youtube.com/@rafgim" target="_blank">
+          © By Rafael Gimeno
+        </a>
+      </div>
+
+      <div class="panel">
+        <div class="layout">
+
+          <div class="card">
+            <label>MIDI IN</label>
+            <select id="midiIn"></select>
+          </div>
+
+          <div class="card">
+            <label>
+              Delay
+              <span class="value"><span id="delayVal">250</span> ms</span>
+            </label>
+            <input id="delay" type="range" min="0" max="800" value="250">
+          </div>
+
+          <div class="card">
+            <label>MIDI OUT</label>
+            <select id="midiOut"></select>
+          </div>
+
+          <div class="card">
+            <label>
+              Volumen
+              <span class="value"><span id="volVal">100</span>%</span>
+            </label>
+            <input id="volume" type="range" min="0" max="100" value="100">
+          </div>
+
+          <div class="card full center-select">
+            <label>Repeticiones</label>
+            <select id="repeats">
+              <option value="1" selected>1 repetición</option>
+              <option value="2">2 repeticiones</option>
+              <option value="3">3 repeticiones</option>
+            </select>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+let midiAccess, midiIn, midiOut;
+const pending = new Map();
+let noteInstanceId = 0;
+
+const inSel = document.getElementById("midiIn");
+const outSel = document.getElementById("midiOut");
+const delay = document.getElementById("delay");
+const delayVal = document.getElementById("delayVal");
+const volume = document.getElementById("volume");
+const volVal = document.getElementById("volVal");
+const repeatsSel = document.getElementById("repeats");
+
+delay.oninput = () => delayVal.textContent = delay.value;
+volume.oninput = () => volVal.textContent = volume.value;
+
+function clamp(n){ return Math.max(0, Math.min(127, n)); }
+
+navigator.requestMIDIAccess().then(midi=>{
+  midiAccess = midi;
+  refresh();
+  midi.onstatechange = refresh;
+});
+
+function refresh(){
+  inSel.innerHTML = "";
+  outSel.innerHTML = "";
+
+  midiAccess.inputs.forEach(i=>{
+    const o = document.createElement("option");
+    o.value = i.id;
+    o.textContent = i.name;
+    inSel.appendChild(o);
+  });
+
+  midiAccess.outputs.forEach(o=>{
+    const opt = document.createElement("option");
+    opt.value = o.id;
+    opt.textContent = o.name;
+    outSel.appendChild(opt);
+  });
+
+  attach();
+}
+
+function attach(){
+  if(midiIn) midiIn.onmidimessage = null;
+  midiIn = midiAccess.inputs.get(inSel.value);
+  midiOut = midiAccess.outputs.get(outSel.value);
+  if(midiIn) midiIn.onmidimessage = onMIDI;
+}
+
+function onMIDI(e){
+  if(!midiOut) return;
+
+  const st = e.data[0];
+  const cmd = st & 0xf0;
+  const ch  = st & 0x0f;
+  const note = e.data[1];
+  const vel  = e.data[2] ?? 0;
+
+  const d = parseInt(delay.value,10);
+  const reps = parseInt(repeatsSel.value,10);
+  const factor = volume.value / 100;
+
+  const key = ch + ":" + note;
+
+  if(cmd === 0x90 && vel > 0){
+    const id = ++noteInstanceId;
+    const arr = pending.get(key) ?? [];
+    arr.push({ id, reps });
+    pending.set(key, arr);
+
+    const outVel = clamp(Math.round(vel * factor));
+
+    for(let r=1; r<=reps; r++){
+      setTimeout(()=>{
+        midiOut.send([0x90 | ch, note, outVel]);
+      }, r * d);
+    }
+  }
+
+  if(cmd === 0x80 || (cmd === 0x90 && vel === 0)){
+    const arr = pending.get(key) ?? [];
+    const inst = arr.shift();
+    if(arr.length) pending.set(key, arr);
+    else pending.delete(key);
+
+    const repsOff = inst?.reps ?? reps;
+
+    for(let r=1; r<=repsOff; r++){
+      setTimeout(()=>{
+        midiOut.send([0x80 | ch, note, 0]);
+      }, r * d);
+    }
+  }
+}
+</script>
+</body>
+</html>
