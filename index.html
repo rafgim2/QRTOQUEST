@@ -1,124 +1,64 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>QR → Meta Quest</title>
-
-<style>
-  body {
-    margin: 0;
-    background: #000;
-    color: #fff;
-    font-family: system-ui, sans-serif;
-    text-align: center;
-    padding: 20px;
-  }
-
-  #video {
-    width: 90%;
-    margin-top: 20px;
-    border-radius: 12px;
-    display: none;
-  }
-
-  button {
-    margin-top: 20px;
-    padding: 14px 22px;
-    border-radius: 10px;
-    border: none;
-    background: #4aa3ff;
-    color: #fff;
-    font-size: 18px;
-    cursor: pointer;
-  }
-
-  #result {
-    margin-top: 20px;
-    font-size: 18px;
-    word-break: break-all;
-  }
-</style>
-
-<script src="https://unpkg.com/@zxing/library@latest"></script>
-</head>
-<body>
-
-<h2>Escanea un QR<br>para abrirlo en tus Meta Quest</h2>
-
-<p id="msg">Pulsa el botón para activar la cámara</p>
-
-<button id="startBtn">Activar cámara</button>
-
-<video id="video" playsinline muted></video>
-
-<div id="result"></div>
-<button id="openBtn" style="display:none;">Abrir en Quest</button>
-
 <script>
 const video = document.getElementById("video");
 const msg = document.getElementById("msg");
-const startBtn = document.getElementById("startBtn");
 const resultEl = document.getElementById("result");
 const openBtn = document.getElementById("openBtn");
-
 let lastURL = null;
-let reader = null;
 
-// --- Verificar si estamos en un iframe ---
-if (window !== window.top) {
-  msg.innerHTML = "⚠️ Esta página está dentro de un iframe y no puede usar la cámara.<br>Ábrela directamente:";
-  startBtn.style.display = "none";
+async function startCamera() {
+  msg.textContent = "Activando cámara trasera...";
+
+  try {
+    // Intento 1: cámara trasera estándar
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { exact: "environment" } },
+      audio: false
+    });
+
+    startDecoding(stream);
+  } catch (e1) {
+    console.warn("Fallo environment:", e1);
+
+    try {
+      // Intento 2: cualquier cámara disponible
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false
+      });
+
+      startDecoding(stream);
+    } catch (e2) {
+      console.error("Cámara no disponible:", e2);
+      msg.innerHTML = "❌ No se pudo acceder a la cámara.<br>Revisa permisos en Chrome → Configuración → Cámara";
+    }
+  }
 }
 
-// --- Manejo del deep link ---
-function openInQuest(url) {
-  const deep = `metaquest://open/?url=${encodeURIComponent(url)}`;
-  window.location.href = deep;
+function startDecoding(stream) {
+  video.srcObject = stream;
+  video.style.display = "block";
+  msg.textContent = "";
+
+  video.onloadedmetadata = () => video.play();
+
+  // ZXing lee desde el <video>
+  const reader = new ZXing.BrowserMultiFormatReader();
+
+  reader.decodeFromVideoElement(video, (result, err) => {
+    if (result) handleQR(result.text);
+  });
 }
 
-// --- Procesar QR ---
 function handleQR(url) {
   lastURL = url;
   resultEl.innerHTML = `Código leído:<br><b>${url}</b>`;
-  openInQuest(url);
   openBtn.style.display = "inline-block";
+
+  // deep-link a Meta Horizon / Meta Quest
+  window.location.href = "metaquest://open/?url=" + encodeURIComponent(url);
 }
 
-openBtn.onclick = () => {
-  if (lastURL) openInQuest(lastURL);
-};
-
-// --- Activar cámara solo tras interacción ---
-startBtn.onclick = async () => {
-  startBtn.style.display = "none";
-  msg.textContent = "Iniciando cámara...";
-
-  try {
-    reader = new ZXing.BrowserMultiFormatReader();
-
-    const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
-
-    if (!devices || devices.length === 0) {
-      msg.innerHTML = "❌ No se encontraron cámaras.<br>Revisa los permisos.";
-      return;
-    }
-
-    const camId = devices[0].deviceId;
-
-    await reader.decodeFromVideoDevice(camId, video, (res) => {
-      if (res) handleQR(res.text);
-    });
-
-    video.style.display = "block";
-    msg.style.display = "none";
-
-  } catch (err) {
-    msg.innerHTML = "❌ Error al acceder a la cámara:<br>" + err;
-    startBtn.style.display = "inline-block";
-  }
+document.getElementById("startBtn").onclick = () => {
+  startCamera();
 };
 </script>
-
-</body>
-</html>
