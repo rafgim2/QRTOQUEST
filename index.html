@@ -1,64 +1,66 @@
-<script>
-const video = document.getElementById("video");
-const msg = document.getElementById("msg");
-const resultEl = document.getElementById("result");
-const openBtn = document.getElementById("openBtn");
-let lastURL = null;
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abrir en Meta Quest</title>
 
-async function startCamera() {
-  msg.textContent = "Activando cámara trasera...";
-
-  try {
-    // Intento 1: cámara trasera estándar
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { exact: "environment" } },
-      audio: false
-    });
-
-    startDecoding(stream);
-  } catch (e1) {
-    console.warn("Fallo environment:", e1);
-
-    try {
-      // Intento 2: cualquier cámara disponible
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: false
-      });
-
-      startDecoding(stream);
-    } catch (e2) {
-      console.error("Cámara no disponible:", e2);
-      msg.innerHTML = "❌ No se pudo acceder a la cámara.<br>Revisa permisos en Chrome → Configuración → Cámara";
-    }
+<style>
+  body {
+    margin: 0;
+    background: #000;
+    color: #fff;
+    font-family: system-ui, sans-serif;
+    text-align: center;
+    padding: 40px 20px;
   }
+
+  h2 {
+    font-size: 26px;
+    margin-bottom: 30px;
+  }
+
+  button {
+    padding: 18px 26px;
+    font-size: 22px;
+    background: #4aa3ff;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+
+  button:active {
+    background: #2d7cd1;
+  }
+
+  p {
+    opacity: 0.75;
+    margin-top: 25px;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<h2>Enviar la experiencia a tus Meta Quest</h2>
+
+<button id="sendBtn">Abrir DreamSAR en mis Quest</button>
+
+<p>Requiere tener instalada la app Meta Horizon y estar conectado a tus gafas.</p>
+
+<script>
+// URL real de tu proyecto
+const TARGET_URL = "https://rafgim2.github.io/DREAMSAR/";
+
+// Deep link que abre Meta Horizon y envía la URL al visor
+function openInQuest() {
+  const deepLink = "metaquest://open/?url=" + encodeURIComponent(TARGET_URL);
+  window.location.href = deepLink;
 }
 
-function startDecoding(stream) {
-  video.srcObject = stream;
-  video.style.display = "block";
-  msg.textContent = "";
-
-  video.onloadedmetadata = () => video.play();
-
-  // ZXing lee desde el <video>
-  const reader = new ZXing.BrowserMultiFormatReader();
-
-  reader.decodeFromVideoElement(video, (result, err) => {
-    if (result) handleQR(result.text);
-  });
-}
-
-function handleQR(url) {
-  lastURL = url;
-  resultEl.innerHTML = `Código leído:<br><b>${url}</b>`;
-  openBtn.style.display = "inline-block";
-
-  // deep-link a Meta Horizon / Meta Quest
-  window.location.href = "metaquest://open/?url=" + encodeURIComponent(url);
-}
-
-document.getElementById("startBtn").onclick = () => {
-  startCamera();
-};
+document.getElementById("sendBtn").onclick = openInQuest;
 </script>
+
+</body>
+</html>
