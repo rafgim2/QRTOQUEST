@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Abrir en Meta Quest</title>
+<title>QR → Meta Quest</title>
 
 <style>
   body {
@@ -12,23 +12,19 @@
     color: #fff;
     font-family: system-ui, sans-serif;
     text-align: center;
+    padding: 20px;
   }
 
   #video {
     width: 90%;
     margin-top: 20px;
     border-radius: 12px;
-  }
-
-  #result {
-    margin-top: 20px;
-    font-size: 18px;
-    word-break: break-all;
+    display: none;
   }
 
   button {
     margin-top: 20px;
-    padding: 12px 20px;
+    padding: 14px 22px;
     border-radius: 10px;
     border: none;
     background: #4aa3ff;
@@ -37,69 +33,91 @@
     cursor: pointer;
   }
 
-  button:active {
-    background: #3377cc;
+  #result {
+    margin-top: 20px;
+    font-size: 18px;
+    word-break: break-all;
   }
 </style>
 
-<!-- Librería ZXing para escaneo QR -->
 <script src="https://unpkg.com/@zxing/library@latest"></script>
-
 </head>
 <body>
 
-<h2>Escanea un código QR<br>para abrirlo en tus Meta Quest</h2>
+<h2>Escanea un QR<br>para abrirlo en tus Meta Quest</h2>
 
-<video id="video" playsinline></video>
+<p id="msg">Pulsa el botón para activar la cámara</p>
+
+<button id="startBtn">Activar cámara</button>
+
+<video id="video" playsinline muted></video>
+
 <div id="result"></div>
 <button id="openBtn" style="display:none;">Abrir en Quest</button>
 
 <script>
 const video = document.getElementById("video");
+const msg = document.getElementById("msg");
+const startBtn = document.getElementById("startBtn");
 const resultEl = document.getElementById("result");
 const openBtn = document.getElementById("openBtn");
 
 let lastURL = null;
+let reader = null;
 
-async function startScanner() {
-  const codeReader = new ZXing.BrowserMultiFormatReader();
-
-  try {
-    const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
-    const camera = devices[0].deviceId;
-
-    await codeReader.decodeFromVideoDevice(camera, video, (res) => {
-      if (res) handleQR(res.text);
-    });
-
-  } catch (e) {
-    resultEl.textContent = "No se pudo acceder a la cámara: " + e;
-  }
+// --- Verificar si estamos en un iframe ---
+if (window !== window.top) {
+  msg.innerHTML = "⚠️ Esta página está dentro de un iframe y no puede usar la cámara.<br>Ábrela directamente:";
+  startBtn.style.display = "none";
 }
 
+// --- Manejo del deep link ---
+function openInQuest(url) {
+  const deep = `metaquest://open/?url=${encodeURIComponent(url)}`;
+  window.location.href = deep;
+}
+
+// --- Procesar QR ---
 function handleQR(url) {
   lastURL = url;
-  resultEl.innerHTML = `Contenido leído:<br><b>${url}</b>`;
-
-  // Intento automático de abrir en Quest
+  resultEl.innerHTML = `Código leído:<br><b>${url}</b>`;
   openInQuest(url);
-
-  // Activa el botón manual por si acaso
   openBtn.style.display = "inline-block";
-}
-
-function openInQuest(url) {
-  const deepLink = `metaquest://open/?url=${encodeURIComponent(url)}`;
-  window.location.href = deepLink;
-
-  console.log("Intentando abrir en Quest:", deepLink);
 }
 
 openBtn.onclick = () => {
   if (lastURL) openInQuest(lastURL);
 };
 
-startScanner();
+// --- Activar cámara solo tras interacción ---
+startBtn.onclick = async () => {
+  startBtn.style.display = "none";
+  msg.textContent = "Iniciando cámara...";
+
+  try {
+    reader = new ZXing.BrowserMultiFormatReader();
+
+    const devices = await ZXing.BrowserMultiFormatReader.listVideoInputDevices();
+
+    if (!devices || devices.length === 0) {
+      msg.innerHTML = "❌ No se encontraron cámaras.<br>Revisa los permisos.";
+      return;
+    }
+
+    const camId = devices[0].deviceId;
+
+    await reader.decodeFromVideoDevice(camId, video, (res) => {
+      if (res) handleQR(res.text);
+    });
+
+    video.style.display = "block";
+    msg.style.display = "none";
+
+  } catch (err) {
+    msg.innerHTML = "❌ Error al acceder a la cámara:<br>" + err;
+    startBtn.style.display = "inline-block";
+  }
+};
 </script>
 
 </body>
